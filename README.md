@@ -35,6 +35,5 @@ This repo includes small projects like:
 
 These projects are ideal for:
 - Practicing core web dev skills
-- Building your portfolio
 - Learning by doing
 
