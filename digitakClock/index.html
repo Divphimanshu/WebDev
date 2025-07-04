@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Digital Clock / Timer / Stopwatch</title>
+<style>
+  body {
+    background: #121212;
+    color: #eee;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    text-align: center;
+    padding: 40px 20px;
+  }
+  h1 {
+    margin-bottom: 25px;
+  }
+  .mode-buttons button {
+    margin: 0 10px;
+    padding: 10px 20px;
+    font-size: 16px;
+    border: none;
+    border-radius: 5px;
+    background: #333;
+    color: #eee;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  .mode-buttons button.active,
+  .mode-buttons button:hover {
+    background: #2196f3;
+  }
+  #display {
+    font-size: 4rem;
+    font-weight: bold;
+    margin: 40px 0;
+    font-family: monospace;
+  }
+  .controls button {
+    margin: 10px 15px;
+    padding: 12px 28px;
+    font-size: 18px;
+    border-radius: 6px;
+    border: none;
+    background: #2196f3;
+    color: #fff;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background-color 0.3s ease;
+  }
+  .controls button:disabled {
+    background: #555;
+    cursor: default;
+  }
+  .timer-inputs {
+    margin-bottom: 15px;
+  }
+  .timer-inputs label {
+    margin: 0 8px;
+    font-size: 16px;
+  }
+  .timer-inputs input {
+    width: 50px;
+    font-size: 18px;
+    padding: 5px;
+    border-radius: 5px;
+    border: none;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<h1>Digital Clock / Timer / Stopwatch</h1>
+
+<div class="mode-buttons">
+  <button id="clockBtn" class="active">Clock</button>
+  <button id="stopwatchBtn">Stopwatch</button>
+  <button id="timerBtn">Timer</button>
+</div>
+
+<div id="display">00:00:00</div>
+
+<!-- Stopwatch Controls -->
+<div id="stopwatchControls" class="controls" style="display:none;">
+  <button id="swStart">Start</button>
+  <button id="swStop" disabled>Stop</button>
+  <button id="swReset">Reset</button>
+</div>
+
+<!-- Timer Inputs and Controls -->
+<div id="timerInputs" class="timer-inputs" style="display:none;">
+  <label>H: <input type="number" id="timerHours" min="0" max="23" value="0" /></label>
+  <label>M: <input type="number" id="timerMinutes" min="0" max="59" value="0" /></label>
+  <label>S: <input type="number" id="timerSeconds" min="0" max="59" value="0" /></label>
+</div>
+<div id="timerControls" class="controls" style="display:none;">
+  <button id="timerStart">Start</button>
+  <button id="timerStop" disabled>Stop</button>
+  <button id="timerReset">Reset</button>
+</div>
+
+<script>
+  // Elements
+  const clockBtn = document.getElementById('clockBtn');
+  const stopwatchBtn = document.getElementById('stopwatchBtn');
+  const timerBtn = document.getElementById('timerBtn');
+  const display = document.getElementById('display');
+
+  const stopwatchControls = document.getElementById('stopwatchControls');
+  const swStart = document.getElementById('swStart');
+  const swStop = document.getElementById('swStop');
+  const swReset = document.getElementById('swReset');
+
+  const timerInputs = document.getElementById('timerInputs');
+  const timerControls = document.getElementById('timerControls');
+  const timerStart = document.getElementById('timerStart');
+  const timerStop = document.getElementById('timerStop');
+  const timerReset = document.getElementById('timerReset');
+  const timerHours = document.getElementById('timerHours');
+  const timerMinutes = document.getElementById('timerMinutes');
+  const timerSeconds = document.getElementById('timerSeconds');
+
+  let mode = 'clock'; // current mode
+  let clockInterval = null;
+
+  // Stopwatch variables
+  let swInterval = null;
+  let swTime = 0; // milliseconds
+  let swRunning = false;
+
+  // Timer variables
+  let timerInterval = null;
+  let timerTime = 0; // milliseconds
+  let timerRunning = false;
+
+  // Helper: format milliseconds to HH:MM:SS
+  function formatTime(ms) {
+    let totalSeconds = Math.floor(ms / 1000);
+    let h = Math.floor(totalSeconds / 3600);
+    let m = Math.floor((totalSeconds % 3600) / 60);
+    let s = totalSeconds % 60;
+    return [h, m, s].map(v => v.toString().padStart(2, '0')).join(':');
+  }
+
+  // Show/hide controls by mode
+  function updateUI() {
+    clockBtn.classList.toggle('active', mode === 'clock');
+    stopwatchBtn.classList.toggle('active', mode === 'stopwatch');
+    timerBtn.classList.toggle('active', mode === 'timer');
+
+    stopwatchControls.style.display = mode === 'stopwatch' ? 'block' : 'none';
+    timerInputs.style.display = mode === 'timer' ? 'block' : 'none';
+    timerControls.style.display = mode === 'timer' ? 'block' : 'none';
+  }
+
+  // CLOCK MODE
+  function startClock() {
+    clearInterval(clockInterval);
+    function updateClock() {
+      const now = new Date();
+      const h = now.getHours().toString().padStart(2, '0');
+      const m = now.getMinutes().toString().padStart(2, '0');
+      const s = now.getSeconds().toString().padStart(2, '0');
+      display.textContent = `${h}:${m}:${s}`;
+    }
+    updateClock();
+    clockInterval = setInterval(updateClock, 1000);
+  }
+
+  // STOPWATCH MODE
+  function updateStopwatchDisplay() {
+    display.textContent = formatTime(swTime);
+  }
+  function swStartHandler() {
+    if (swRunning) return;
+    swRunning = true;
+    swStart.disabled = true;
+    swStop.disabled = false;
+    swInterval = setInterval(() => {
+      swTime += 1000;
+      updateStopwatchDisplay();
+    }, 1000);
+  }
+  function swStopHandler() {
+    if (!swRunning) return;
+    swRunning = false;
+    swStart.disabled = false;
+    swStop.disabled = true;
+    clearInterval(swInterval);
+  }
+  function swResetHandler() {
+    swTime = 0;
+    updateStopwatchDisplay();
+  }
+
+  // TIMER MODE
+  function updateTimerDisplay() {
+    display.textContent = formatTime(timerTime);
+  }
+  function timerStartHandler() {
+    if (timerRunning) return;
+
+    // get user input and convert to ms
+    const h = parseInt(timerHours.value) || 0;
+    const m = parseInt(timerMinutes.value) || 0;
+    const s = parseInt(timerSeconds.value) || 0;
+    timerTime = (h * 3600 + m * 60 + s) * 1000;
+
+    if (timerTime <= 0) {
+      alert("Set a valid timer duration!");
+      return;
+    }
+
+    timerRunning = true;
+    timerStart.disabled = true;
+    timerStop.disabled = false;
+
+    updateTimerDisplay();
+
+    timerInterval = setInterval(() => {
+      timerTime -= 1000;
+      if (timerTime <= 0) {
+        clearInterval(timerInterval);
+        timerTime = 0;
+        alert("Timer finished!");
+        timerRunning = false;
+        timerStart.disabled = false;
+        timerStop.disabled = true;
+      }
+      updateTimerDisplay();
+    }, 1000);
+  }
+  function timerStopHandler() {
+    if (!timerRunning) return;
+    timerRunning = false;
+    clearInterval(timerInterval);
+    timerStart.disabled = false;
+    timerStop.disabled = true;
+  }
+  function timerResetHandler() {
+    timerRunning = false;
+    clearInterval(timerInterval);
+    timerTime = 0;
+    updateTimerDisplay();
+    timerStart.disabled = false;
+    timerStop.disabled = true;
+  }
+
+  // MODE SWITCHING
+  function switchMode(newMode) {
+    // Stop any ongoing intervals
+    clearInterval(clockInterval);
+    clearInterval(swInterval);
+    clearInterval(timerInterval);
+
+    // Reset buttons/flags
+    swRunning = false;
+    timerRunning = false;
+
+    swStart.disabled = false;
+    swStop.disabled = true;
+    timerStart.disabled = false;
+    timerStop.disabled = true;
+
+    mode = newMode;
+    updateUI();
+
+    if (mode === 'clock') {
+      startClock();
+    } else if (mode === 'stopwatch') {
+      swTime = 0;
+      updateStopwatchDisplay();
+    } else if (mode === 'timer') {
+      timerTime = 0;
+      updateTimerDisplay();
+    }
+  }
+
+  // Event Listeners
+  clockBtn.addEventListener('click', () => switchMode('clock'));
+  stopwatchBtn.addEventListener('click', () => switchMode('stopwatch'));
+  timerBtn.addEventListener('click', () => switchMode('timer'));
+
+  swStart.addEventListener('click', swStartHandler);
+  swStop.addEventListener('click', swStopHandler);
+  swReset.addEventListener('click', () => {
+    swResetHandler();
+    swStart.disabled = false;
+    swStop.disabled = true;
+  });
+
+  timerStart.addEventListener('click', timerStartHandler);
+  timerStop.addEventListener('click', timerStopHandler);
+  timerReset.addEventListener('click', timerResetHandler);
+
+  // Initialize with clock
+  switchMode('clock');
+</script>
+
+</body>
+</html>
